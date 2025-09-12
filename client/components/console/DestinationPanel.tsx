@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Crosshair, Target, MapPin } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const INDIA_BOUNDS = { latMin: 6, latMax: 36, lonMin: 68, lonMax: 98 };
 
@@ -44,10 +44,6 @@ export function DestinationPanel({
   const [draftLat, setDraftLat] = useState(lat);
   const [draftLon, setDraftLon] = useState(lon);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
-  const [tracking, setTracking] = useState(false);
-  const [lastUpdateAt, setLastUpdateAt] = useState<number | null>(null);
-  const [accuracyM, setAccuracyM] = useState<number | null>(null);
-  const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (curLat != null && curLon != null) {
@@ -55,76 +51,14 @@ export function DestinationPanel({
     }
   }, [curLat, curLon, draftLat, draftLon]);
 
-  // Cleanup any active geolocation watch when component unmounts
-  useEffect(() => {
-    return () => {
-      if (watchIdRef.current != null) {
-        navigator.geolocation?.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
-      }
-    };
-  }, []);
-
   const dst = useMemo(() => project(draftLat, draftLon), [draftLat, draftLon]);
   const src = useMemo(() => (curLat != null && curLon != null ? project(curLat, curLon) : null), [curLat, curLon]);
 
   const useGeolocation = () => {
     if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      onSetCurrent(lat, lon);
-      // Send to backend for persistence/telemetry
-      try {
-        await fetch("/api/location", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lat, lon }),
-        });
-      } catch (e) {
-        // best-effort send; silently ignore errors in demo
-        console.warn("Failed to send location", e);
-      }
+    navigator.geolocation.getCurrentPosition((pos) => {
+      onSetCurrent(pos.coords.latitude, pos.coords.longitude);
     });
-  };
-
-  const toggleTracking = () => {
-    if (!navigator.geolocation) return;
-
-    if (tracking) {
-      if (watchIdRef.current != null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
-      }
-      setTracking(false);
-      return;
-    }
-
-    const id = navigator.geolocation.watchPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        setAccuracyM(typeof pos.coords.accuracy === "number" ? pos.coords.accuracy : null);
-        setLastUpdateAt(Date.now());
-        onSetCurrent(lat, lon);
-        try {
-          await fetch("/api/location", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ lat, lon }),
-          });
-        } catch (e) {
-          console.warn("Failed to send location", e);
-        }
-      },
-      (err) => {
-        console.warn("Geolocation watch error", err);
-      },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
-    );
-
-    watchIdRef.current = id;
-    setTracking(true);
   };
 
   return (
@@ -150,16 +84,8 @@ export function DestinationPanel({
             </Button>
             <Button variant="outline" onClick={() => { setDraftLat(lat); setDraftLon(lon); }}>Reset</Button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex gap-2">
             <Button variant="outline" onClick={useGeolocation}><MapPin className="h-4 w-4 mr-2" /> Use Current Location</Button>
-            <Button variant={tracking ? "destructive" : "secondary"} onClick={toggleTracking}>
-              {tracking ? "Stop Tracking" : "Start Tracking"}
-            </Button>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {tracking
-              ? `Tracking... ${accuracyM != null ? `(±${Math.round(accuracyM)} m)` : ""} ${lastUpdateAt ? `• Updated ${new Date(lastUpdateAt).toLocaleTimeString()}` : ""}`
-              : "Tracking off"}
           </div>
           <Separator />
           <div className="text-xs text-muted-foreground flex items-center gap-2">

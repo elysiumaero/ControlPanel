@@ -10,16 +10,3 @@
 export interface DemoResponse {
   message: string;
 }
-
-// Client -> Server: update current location using navigator.geolocation
-export interface LocationUpdateRequest {
-  lat: number;
-  lon: number;
-}
-
-// Server -> Client ack
-export interface LocationUpdateResponse {
-  ok: boolean;
-  received?: { lat: number; lon: number };
-  error?: string;
-}

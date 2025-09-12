@@ -9,12 +9,7 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     fs: {
-      // Allow project root as well so index.html at root can be served
-      allow: [
-        path.resolve(__dirname, "."),
-        path.resolve(__dirname, "./client"),
-        path.resolve(__dirname, "./shared"),
-      ],
+      allow: ["./client", "./shared"],
       deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "server/**"],
     },
   },
