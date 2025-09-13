@@ -64,26 +64,28 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
-        "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+        pulseGlow: {
+          "0%, 100%": { boxShadow: "0 0 16px rgba(16,185,129,.45)" },
+          "50%": { boxShadow: "0 0 30px rgba(16,185,129,.75)" },
         },
-        "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+        scanlines: {
+          "0%": { backgroundPosition: "0% 0%" },
+          "100%": { backgroundPosition: "0% 100%" },
+        },
+        sweep: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        rotateSlow: {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
         },
       },
       animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
+        pulseGlow: "pulseGlow 3s ease-in-out infinite",
+        scanlines: "scanlines 2.5s linear infinite",
+        sweep: "sweep 2.8s linear infinite",
+        "rotate-slow": "rotateSlow 45s linear infinite",
       },
     },
   },
