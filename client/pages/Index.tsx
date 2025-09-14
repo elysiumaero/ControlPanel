@@ -1,98 +1,227 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { login, isAuthenticated } from "@/lib/auth";
+import { useMemo, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { ShieldCheck, User } from "lucide-react";
+import {
+  TelemetryPanel,
+  type Health,
+} from "@/components/console/TelemetryPanel";
+// // import { DestinationPanel } from "@/components/console/DestinationPanel";
+import { NavigationPanel } from "@/components/console/NavigationPanel";
+import { ArmingPanel } from "@/components/console/ArmingPanel";
+import { SafetyChecksPanel } from "@/components/console/SafetyChecksPanel";
+import { CommunicationPanel } from "@/components/console/CommunicationPanel";
+import { LaunchPanel } from "@/components/console/LaunchPanel";
+import { ManualControlPanel } from "@/components/console/ManualControlPanel";
+import { TestConsole } from "@/components/console/TestConsole";
+import { TopNav } from "@/components/console/TopNav";
+
+const CREW = [
+  { name: "prerit roshan", password: "980752" },
+  { name: "raghav jindal", password: "13579" },
+] as const;
 
 export default function Index() {
-  const navigate = useNavigate();
-  const [name, setName] = useState("");
+  // Auth state
+  const [commander, setCommander] = useState<string>("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-    if (isAuthenticated()) navigate("/dashboard");
-  }, [navigate]);
+  const authOk = CREW.some(
+    (c) => c.name === commander && c.password === password,
+  );
+  const isAuthed = authOk;
 
-  const disabled = useMemo(
-    () => name.trim().length === 0 || password.length === 0,
-    [name, password],
+  // Telemetry state (live or test-injected)
+  const [rpm, setRpm] = useState(6200);
+  const [battery, setBattery] = useState(88);
+  const [speed, setSpeed] = useState(120);
+  const [motorTemp, setMotorTemp] = useState(72);
+  const [altitude, setAltitude] = useState(1500);
+  const health: Health =
+    motorTemp < 90 && battery > 40
+      ? "OK"
+      : motorTemp < 120
+        ? "Warning"
+        : "Critical";
+
+  // Destination
+  const [lat, setLat] = useState(28.6139);
+  const [lon, setLon] = useState(77.209);
+  const [curLat, setCurLat] = useState<number | null>(null);
+  const [curLon, setCurLon] = useState<number | null>(null);
+  const [targetLocked, setTargetLocked] = useState(false);
+
+  const systemStatus = useMemo(
+    () => (isAuthed ? "SECURE" : "LOCKED"),
+    [isAuthed],
   );
 
+  // Safety shared state
+  const [safetyVerified, setSafetyVerified] = useState(false);
+  const [safetyArmed, setSafetyArmed] = useState(false);
+
   return (
-    <div className="min-h-screen relative overflow-hidden bg-neutral-950 text-emerald-300">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(16,185,129,.15),transparent_40%),radial-gradient(circle_at_80%_30%,rgba(16,185,129,.12),transparent_40%),radial-gradient(circle_at_50%_100%,rgba(52,211,153,.12),transparent_40%)]" />
-      <div className="absolute inset-0 opacity-[0.08] mix-blend-screen bg-[linear-gradient(transparent_95%,rgba(16,185,129,.35)_95%)] bg-[length:100%_3px] animate-scanlines" />
-      <div className="absolute inset-0 pointer-events-none [mask-image:radial-gradient(circle_at_center,black,transparent_70%)]">
-        <div className="absolute -inset-[40%] bg-[conic-gradient(from_0deg,rgba(16,185,129,.08),transparent_20%,rgba(16,185,129,.08))] animate-rotate-slow" />
-      </div>
-
-      <div className="relative z-10 flex min-h-screen items-center justify-center p-6">
-        <div className="w-full max-w-md border border-emerald-700/30 bg-black/40 rounded-xl p-6 md:p-8 shadow-[inset_0_0_60px_rgba(16,185,129,.12)] backdrop-blur">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="size-10 rounded bg-emerald-500/20 ring-1 ring-emerald-400/40 shadow-[0_0_30px_rgba(16,185,129,.35)] animate-pulseGlow" />
-            <div>
-              <div className="text-2xl font-extrabold tracking-widest text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,.6)]">
-                ELYSIUM
+    <div className="min-h-screen">
+      <TopNav status={systemStatus} commanderName={commander || undefined} />
+      <main className="container mx-auto px-4 py-6">
+        {!isAuthed ? (
+          <Card className="max-w-3xl mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" /> Authorization
+                Required
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Commander</Label>
+                  <Input
+                    placeholder="prerit roshan / raghav jindal"
+                    value={commander}
+                    onChange={(e) => setCommander(e.target.value)}
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Type the name exactly
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Password</Label>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <Badge
+                    variant={authOk ? "secondary" : "outline"}
+                    className="mt-6"
+                  >
+                    <User className="h-3 w-3 mr-1" />{" "}
+                    {authOk ? "Validated" : "Pending"}
+                  </Badge>
+                </div>
               </div>
-              <div className="text-xs text-emerald-500/80 tracking-[0.2em]">
-                LAUNCH AUTHORIZATION
+              <Separator />
+              <div className="flex justify-end">
+                <Button disabled={!isAuthed}>Enter Command</Button>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Tabs defaultValue="dashboard">
+              <div className="flex items-center justify-between">
+                <TabsList>
+                  <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                  <TabsTrigger value="arming">Arming</TabsTrigger>
+                  <TabsTrigger value="navigation">Navigation</TabsTrigger>
+                  <TabsTrigger value="manual">Manual</TabsTrigger>
+                  <TabsTrigger value="safety">Safety</TabsTrigger>
+                  <TabsTrigger value="comms">Communication</TabsTrigger>
+                  <TabsTrigger value="launch">Launch</TabsTrigger>
+                </TabsList>
+                <div className="text-xs text-muted-foreground flex items-center gap-2">
+                  <span>Commander: {commander}</span>
+                </div>
+              </div>
 
-          <label className="block text-sm text-emerald-400/80 mb-1 tracking-wide">
-            Operator Name
-          </label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Prerit Roshan or Raghav Jindal"
-            className="w-full mb-4 px-4 py-2 rounded bg-neutral-900/80 text-emerald-200 placeholder:text-emerald-600/50 border border-emerald-700/30 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/60 transition"
-          />
+              <TabsContent value="dashboard" className="mt-4 space-y-4">
+                <TelemetryPanel
+                  rpm={rpm}
+                  batteryPct={battery}
+                  speed={speed}
+                  motorTemp={motorTemp}
+                  health={health}
+                />
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5 text-primary" /> Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid sm:grid-cols-3 gap-3 text-sm">
+                    <div className="p-3 rounded border bg-secondary/30">
+                      <div className="text-muted-foreground">Login</div>
+                      <div className="font-mono">{authOk ? "OK" : "FAIL"}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-          <label className="block text-sm text-emerald-400/80 mb-1 tracking-wide">
-            Access Code
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter mission code"
-            className="w-full mb-2 px-4 py-2 rounded bg-neutral-900/80 text-emerald-200 placeholder:text-emerald-600/50 border border-emerald-700/30 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/60 transition"
-          />
+              <TabsContent value="arming" className="mt-4">
+                <ArmingPanel armed={safetyArmed} setArmed={setSafetyArmed} />
+              </TabsContent>
 
-          {error && <div className="text-red-400/90 text-sm mb-3">{error}</div>}
+              <TabsContent value="navigation" className="mt-4">
+                <NavigationPanel
+                  curLat={curLat ?? 28.6139}
+                  curLon={curLon ?? 77.209}
+                  speedMS={speed}
+                  lat={lat}
+                  lon={lon}
+                  onSet={(la, lo) => {
+                    setLat(la);
+                    setLon(lo);
+                  }}
+                  locked={targetLocked}
+                  onLockedChange={setTargetLocked}
+                />
+              </TabsContent>
 
-          <button
-            disabled={disabled}
-            onClick={() => {
-              const u = login(name, password);
-              if (!u) {
-                setError("Invalid credentials. Authorized operators only.");
-                return;
-              }
-              setError("");
-              navigate("/dashboard");
-            }}
-            className="group relative w-full mt-2 inline-flex items-center justify-center px-4 py-2.5 font-bold tracking-widest rounded-md text-emerald-900 disabled:opacity-40 disabled:cursor-not-allowed transition active:scale-[.99]"
-          >
-            <span className="absolute inset-0 rounded-md bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,.6)] group-hover:shadow-[0_0_40px_rgba(16,185,129,.8)] transition" />
-            <span className="relative z-10">ENGAGE</span>
-          </button>
+              <TabsContent value="manual" className="mt-4">
+                <ManualControlPanel
+                  speedMS={speed}
+                  altitudeM={altitude}
+                  powerPct={battery}
+                />
+              </TabsContent>
 
-          <div className="mt-6 grid grid-cols-3 gap-2 text-[10px] text-emerald-500/80">
-            <div className="rounded border border-emerald-700/30 p-2 bg-emerald-500/5">
-              LINK: SECURE
-            </div>
-            <div className="rounded border border-emerald-700/30 p-2 bg-emerald-500/5">
-              UAV: ELYSIUM
-            </div>
-            <div className="rounded border border-emerald-700/30 p-2 bg-emerald-500/5">
-              MODE: STANDBY
-            </div>
-          </div>
-        </div>
-      </div>
+              <TabsContent value="safety" className="mt-4">
+                <SafetyChecksPanel
+                  verified={safetyVerified}
+                  setVerified={setSafetyVerified}
+                />
+              </TabsContent>
+
+              <TabsContent value="comms" className="mt-4">
+                <CommunicationPanel />
+              </TabsContent>
+
+              <TabsContent value="launch" className="mt-4">
+                <LaunchPanel
+                  authOk={authOk}
+                  safetyVerified={safetyVerified}
+                  safetyArmed={safetyArmed}
+                  telemetryOk={health === "OK"}
+                  batteryPct={battery}
+                  navLocked={true}
+                  targetLocked={targetLocked}
+                />
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
+      </main>
+
+      <TestConsole
+        rpm={rpm}
+        battery={battery}
+        speed={speed}
+        motorTemp={motorTemp}
+        altitude={altitude}
+        setRpm={setRpm}
+        setBattery={setBattery}
+        setSpeed={setSpeed}
+        setMotorTemp={setMotorTemp}
+        setAltitude={setAltitude}
+        requireTwoPerson={false}
+        setRequireTwoPerson={() => {}}
+      />
     </div>
   );
 }
