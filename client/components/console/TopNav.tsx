@@ -16,7 +16,9 @@ export function TopNav({
           <div className="h-7 w-7 rounded-sm bg-primary/20 border border-primary/40 grid place-items-center">
             <Crosshair className="h-4 w-4 text-primary" />
           </div>
-          <div className="font-bold tracking-wide">Elysium Command</div>
+          <div className="font-bold tracking-wide">
+            Robust Autonomous Drone Handling Architecture (RADHA)
+          </div>
           <Badge variant="secondary" className="ml-2">
             Missile Ops
           </Badge>
@@ -24,7 +26,7 @@ export function TopNav({
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           {commanderName ? (
             <div className="hidden md:flex items-center gap-1">
-              <GaugeCircle className="h-4 w-4" /> {commanderName}
+              <GaugeCircle className="h-4 w-4" /> Adeshak: {commanderName}
             </div>
           ) : null}
           <Separator orientation="vertical" className="h-6" />

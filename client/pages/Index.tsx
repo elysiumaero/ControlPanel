@@ -23,7 +23,7 @@ import { TopNav } from "@/components/console/TopNav";
 
 const CREW = [
   { name: "prerit roshan", password: "980752" },
-  { name: "raghav jindal", password: "13579" },
+  { name: "raghav jindal", password: "190508." },
 ] as const;
 
 export default function Index() {
@@ -34,14 +34,17 @@ export default function Index() {
   const authOk = CREW.some(
     (c) => c.name === commander && c.password === password,
   );
-  const isAuthed = authOk;
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [loginProgress, setLoginProgress] = useState(0);
+  const isAuthed = loggedIn;
 
   // Telemetry state (live or test-injected)
-  const [rpm, setRpm] = useState(6200);
-  const [battery, setBattery] = useState(88);
-  const [speed, setSpeed] = useState(120);
-  const [motorTemp, setMotorTemp] = useState(72);
-  const [altitude, setAltitude] = useState(1500);
+  const [rpm, setRpm] = useState(0);
+  const [battery, setBattery] = useState(0);
+  const [speed, setSpeed] = useState(0);
+  const [motorTemp, setMotorTemp] = useState(0);
+  const [altitude, setAltitude] = useState(0);
   const health: Health =
     motorTemp < 90 && battery > 40
       ? "OK"
@@ -57,8 +60,8 @@ export default function Index() {
   const [targetLocked, setTargetLocked] = useState(false);
 
   const systemStatus = useMemo(
-    () => (isAuthed ? "SECURE" : "LOCKED"),
-    [isAuthed],
+    () => (isAuthed ? "SECURE" : loggingIn ? "VERIFYING" : "LOCKED"),
+    [isAuthed, loggingIn],
   );
 
   // Safety shared state
@@ -80,9 +83,9 @@ export default function Index() {
             <CardContent className="space-y-5">
               <div className="grid md:grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Commander</Label>
+                  <Label>Adeshak</Label>
                   <Input
-                    placeholder="prerit roshan / raghav jindal"
+                    placeholder="Enter Adeshak name"
                     value={commander}
                     onChange={(e) => setCommander(e.target.value)}
                   />
@@ -107,9 +110,57 @@ export default function Index() {
                 </div>
               </div>
               <Separator />
-              <div className="flex justify-end">
-                <Button disabled={!isAuthed}>Enter Command</Button>
+              <div className="flex items-center justify-between">
+                {loggingIn ? (
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="h-3 w-3 rounded-full bg-primary animate-ping" />
+                    Verifying credentials...
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground">
+                    Enter valid credentials to continue.
+                  </div>
+                )}
+                <Button
+                  disabled={!authOk || loggingIn}
+                  onClick={() => {
+                    if (!authOk) return;
+                    setLoggingIn(true);
+                    setLoginProgress(0);
+                    const id = window.setInterval(() => {
+                      setLoginProgress((p) => {
+                        const n = Math.min(
+                          100,
+                          p + Math.floor(10 + Math.random() * 20),
+                        );
+                        if (n >= 100) {
+                          clearInterval(id);
+                          setTimeout(() => {
+                            setLoggedIn(true);
+                            setLoggingIn(false);
+                          }, 300);
+                        }
+                        return n;
+                      });
+                    }, 150);
+                  }}
+                >
+                  Enter Command
+                </Button>
               </div>
+              {loggingIn ? (
+                <div className="mt-3">
+                  <div className="h-2 w-full overflow-hidden rounded bg-secondary">
+                    <div
+                      className="h-2 bg-primary"
+                      style={{
+                        width: `${Math.max(10, loginProgress)}%`,
+                        transition: "width 0.15s ease",
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ) : (
